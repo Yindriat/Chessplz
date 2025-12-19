@@ -193,20 +193,13 @@ fun ChessBoardWithDragDrop(gameState: ChessGameState) {
 
         // Pièce en cours de déplacement
                 if (isDragging && draggedPiece != null) {
-                    Box(
+                    Text(
+                        getPieceUnicode(draggedPiece!!),
+                        style = TextStyle(fontSize = 36.sp),
                         modifier = Modifier
                             .offset { IntOffset(offsetX.roundToInt(), offsetY.roundToInt()) }
                             .zIndex(100f)
-                            .size(cellSizeDp)
-                            .background(Color(0xCCFFEB3B))
-                            .border(2.dp, Color.Red),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            getPieceUnicode(draggedPiece!!),
-                            style = TextStyle(fontSize = 32.sp)
-                        )
-                    }
+                    )
                 }
             }
 

@@ -22,6 +22,18 @@ class ChessGameState {
         private set
     var isInCheck by mutableStateOf(false)
         private set
+    var isCheckmate by mutableStateOf(false)
+        private set
+    var isStalemate by mutableStateOf(false)
+        private set
+    
+    // Suivi des mouvements pour le roque
+    private var whiteKingMoved = false
+    private var blackKingMoved = false
+    private var whiteRookKingsideMoved = false  // Tour h1
+    private var whiteRookQueensideMoved = false // Tour a1
+    private var blackRookKingsideMoved = false  // Tour h8
+    private var blackRookQueensideMoved = false // Tour a8
     
     // Compteur de version pour forcer la recomposition du plateau
     var boardVersion by mutableStateOf(0)
@@ -78,8 +90,21 @@ class ChessGameState {
             selectedPosition = null
             validMoves = emptyList()
             whiteToMove = !whiteToMove
+            
             // Vérifier si le nouveau joueur est en échec
-            isInCheck = isKingInCheck(if (whiteToMove) ChessColor.WHITE else ChessColor.BLACK)
+            val currentColor = if (whiteToMove) ChessColor.WHITE else ChessColor.BLACK
+            isInCheck = isKingInCheck(currentColor)
+            
+            // Vérifier échec et mat ou pat
+            if (!hasAnyLegalMoves(currentColor)) {
+                gameOver = true
+                if (isInCheck) {
+                    isCheckmate = true
+                    winner = if (whiteToMove) ChessColor.BLACK else ChessColor.WHITE
+                } else {
+                    isStalemate = true
+                }
+            }
         } else if (piece != null && piece.color.toBoolean() == whiteToMove) {
             selectedPosition = pos
             validMoves = calculateValidMoves(pos)
@@ -95,6 +120,45 @@ class ChessGameState {
         
         if (captured != null) {
             capturedPieces = capturedPieces + captured
+        }
+        
+        // Suivi des mouvements pour le roque
+        if (piece.type == PieceType.KING) {
+            if (piece.color == ChessColor.WHITE) {
+                // Vérifier si c'est un roque
+                if (from.col == 4 && to.col == 6) {
+                    // Petit roque blanc
+                    board[7][5] = board[7][7]
+                    board[7][7] = null
+                } else if (from.col == 4 && to.col == 2) {
+                    // Grand roque blanc
+                    board[7][3] = board[7][0]
+                    board[7][0] = null
+                }
+                whiteKingMoved = true
+            } else {
+                // Vérifier si c'est un roque
+                if (from.col == 4 && to.col == 6) {
+                    // Petit roque noir
+                    board[0][5] = board[0][7]
+                    board[0][7] = null
+                } else if (from.col == 4 && to.col == 2) {
+                    // Grand roque noir
+                    board[0][3] = board[0][0]
+                    board[0][0] = null
+                }
+                blackKingMoved = true
+            }
+        }
+        
+        if (piece.type == PieceType.ROOK) {
+            if (piece.color == ChessColor.WHITE) {
+                if (from.row == 7 && from.col == 7) whiteRookKingsideMoved = true
+                if (from.row == 7 && from.col == 0) whiteRookQueensideMoved = true
+            } else {
+                if (from.row == 0 && from.col == 7) blackRookKingsideMoved = true
+                if (from.row == 0 && from.col == 0) blackRookQueensideMoved = true
+            }
         }
         
         board[to.row][to.col] = piece
@@ -278,6 +342,39 @@ class ChessGameState {
                         }
                     }
                 }
+                
+                // Roque
+                if (piece.color == ChessColor.WHITE && !whiteKingMoved && !isKingInCheck(ChessColor.WHITE)) {
+                    // Petit roque blanc (côté roi)
+                    if (!whiteRookKingsideMoved && 
+                        board[7][5] == null && board[7][6] == null &&
+                        !isSquareAttacked(Position(7, 5), ChessColor.BLACK) &&
+                        !isSquareAttacked(Position(7, 6), ChessColor.BLACK)) {
+                        moves.add(Position(7, 6))
+                    }
+                    // Grand roque blanc (côté dame)
+                    if (!whiteRookQueensideMoved && 
+                        board[7][1] == null && board[7][2] == null && board[7][3] == null &&
+                        !isSquareAttacked(Position(7, 2), ChessColor.BLACK) &&
+                        !isSquareAttacked(Position(7, 3), ChessColor.BLACK)) {
+                        moves.add(Position(7, 2))
+                    }
+                } else if (piece.color == ChessColor.BLACK && !blackKingMoved && !isKingInCheck(ChessColor.BLACK)) {
+                    // Petit roque noir (côté roi)
+                    if (!blackRookKingsideMoved && 
+                        board[0][5] == null && board[0][6] == null &&
+                        !isSquareAttacked(Position(0, 5), ChessColor.WHITE) &&
+                        !isSquareAttacked(Position(0, 6), ChessColor.WHITE)) {
+                        moves.add(Position(0, 6))
+                    }
+                    // Grand roque noir (côté dame)
+                    if (!blackRookQueensideMoved && 
+                        board[0][1] == null && board[0][2] == null && board[0][3] == null &&
+                        !isSquareAttacked(Position(0, 2), ChessColor.WHITE) &&
+                        !isSquareAttacked(Position(0, 3), ChessColor.WHITE)) {
+                        moves.add(Position(0, 2))
+                    }
+                }
             }
         }
 
@@ -402,6 +499,22 @@ class ChessGameState {
         return inCheck
     }
 
+    // Vérifier si un joueur a au moins un mouvement légal
+    private fun hasAnyLegalMoves(color: ChessColor): Boolean {
+        for (row in 0..7) {
+            for (col in 0..7) {
+                val piece = board[row][col]
+                if (piece != null && piece.color == color) {
+                    val moves = calculateValidMoves(Position(row, col))
+                    if (moves.isNotEmpty()) {
+                        return true
+                    }
+                }
+            }
+        }
+        return false
+    }
+
     fun resetGame() {
         board.forEach { it.fill(null) }
         initializeBoard()
@@ -412,6 +525,14 @@ class ChessGameState {
         winner = null
         capturedPieces = emptyList()
         isInCheck = false
+        isCheckmate = false
+        isStalemate = false
+        whiteKingMoved = false
+        blackKingMoved = false
+        whiteRookKingsideMoved = false
+        whiteRookQueensideMoved = false
+        blackRookKingsideMoved = false
+        blackRookQueensideMoved = false
         boardVersion++
     }
 }

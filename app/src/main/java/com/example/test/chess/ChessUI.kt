@@ -54,20 +54,48 @@ fun ChessGameScreen(modifier: Modifier = Modifier) {
         Spacer(modifier = Modifier.height(4.dp))
         
         if (gameStarted) {
-            Text(
-                "Joueur actuel: ${if (gameState.whiteToMove) "Blanc" else "Noir"}",
-                style = TextStyle(fontSize = 14.sp)
-            )
-            
-            if (gameState.isInCheck) {
+            if (gameState.isCheckmate) {
                 Text(
-                    "⚠️ ÉCHEC ! ⚠️",
+                    "👑 ÉCHEC ET MAT ! 👑",
+                    style = TextStyle(
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFD4AF37)
+                    )
+                )
+                Text(
+                    "Les ${if (gameState.winner == ChessColor.WHITE) "Blancs" else "Noirs"} gagnent !",
                     style = TextStyle(
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color.Red
+                        color = Color(0xFF4CAF50)
                     )
                 )
+            } else if (gameState.isStalemate) {
+                Text(
+                    "🤝 PAT - Match nul ! 🤝",
+                    style = TextStyle(
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF2196F3)
+                    )
+                )
+            } else {
+                Text(
+                    "Joueur actuel: ${if (gameState.whiteToMove) "Blanc" else "Noir"}",
+                    style = TextStyle(fontSize = 14.sp)
+                )
+                
+                if (gameState.isInCheck) {
+                    Text(
+                        "⚠️ ÉCHEC ! ⚠️",
+                        style = TextStyle(
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Red
+                        )
+                    )
+                }
             }
             
             Spacer(modifier = Modifier.height(8.dp))
