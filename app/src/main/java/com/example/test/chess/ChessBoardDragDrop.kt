@@ -47,15 +47,65 @@ fun ChessBoardWithDragDrop(gameState: ChessGameState) {
     var offsetX by remember { mutableFloatStateOf(0f) }
     var offsetY by remember { mutableFloatStateOf(0f) }
 
-    Box(
+    val files = listOf("a", "b", "c", "d", "e", "f", "g", "h")
+    val ranks = listOf("8", "7", "6", "5", "4", "3", "2", "1")
+
+    Column(
         modifier = Modifier
-            .background(Color.Black)
-            .padding(2.dp)
+            .background(Color(0xFF5D4037))
+            .padding(4.dp)
     ) {
-        // Le plateau
-        Column(
-            modifier = Modifier
-                .pointerInput(gameState.whiteToMove, gameState.boardVersion) {
+        // Ligne des lettres en haut
+        Row {
+            Box(modifier = Modifier.size(20.dp)) // Coin vide
+            files.forEach { letter ->
+                Box(
+                    modifier = Modifier.size(width = cellSizeDp, height = 20.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        letter,
+                        style = TextStyle(
+                            fontSize = 12.sp,
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                            color = Color(0xFFF0D9B5)
+                        )
+                    )
+                }
+            }
+            Box(modifier = Modifier.size(20.dp)) // Coin vide
+        }
+
+        Row {
+            // Colonne des chiffres à gauche
+            Column {
+                ranks.forEach { number ->
+                    Box(
+                        modifier = Modifier.size(width = 20.dp, height = cellSizeDp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            number,
+                            style = TextStyle(
+                                fontSize = 12.sp,
+                                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                                color = Color(0xFFF0D9B5)
+                            )
+                        )
+                    }
+                }
+            }
+
+            // Le plateau principal
+            Box(
+                modifier = Modifier
+                    .background(Color.Black)
+                    .padding(2.dp)
+            ) {
+                // Le plateau
+                Column(
+                    modifier = Modifier
+                        .pointerInput(gameState.whiteToMove, gameState.boardVersion) {
                     detectDragGestures(
                         onDragStart = { startOffset ->
                             val col = (startOffset.x / cellSizePx).toInt().coerceIn(0, 7)
@@ -142,21 +192,63 @@ fun ChessBoardWithDragDrop(gameState: ChessGameState) {
         }
 
         // Pièce en cours de déplacement
-        if (isDragging && draggedPiece != null) {
-            Box(
-                modifier = Modifier
-                    .offset { IntOffset(offsetX.roundToInt(), offsetY.roundToInt()) }
-                    .zIndex(100f)
-                    .size(cellSizeDp)
-                    .background(Color(0xCCFFEB3B))
-                    .border(2.dp, Color.Red),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    getPieceUnicode(draggedPiece!!),
-                    style = TextStyle(fontSize = 32.sp)
-                )
+                if (isDragging && draggedPiece != null) {
+                    Box(
+                        modifier = Modifier
+                            .offset { IntOffset(offsetX.roundToInt(), offsetY.roundToInt()) }
+                            .zIndex(100f)
+                            .size(cellSizeDp)
+                            .background(Color(0xCCFFEB3B))
+                            .border(2.dp, Color.Red),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            getPieceUnicode(draggedPiece!!),
+                            style = TextStyle(fontSize = 32.sp)
+                        )
+                    }
+                }
             }
+
+            // Colonne des chiffres à droite
+            Column {
+                ranks.forEach { number ->
+                    Box(
+                        modifier = Modifier.size(width = 20.dp, height = cellSizeDp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            number,
+                            style = TextStyle(
+                                fontSize = 12.sp,
+                                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                                color = Color(0xFFF0D9B5)
+                            )
+                        )
+                    }
+                }
+            }
+        }
+
+        // Ligne des lettres en bas
+        Row {
+            Box(modifier = Modifier.size(20.dp)) // Coin vide
+            files.forEach { letter ->
+                Box(
+                    modifier = Modifier.size(width = cellSizeDp, height = 20.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        letter,
+                        style = TextStyle(
+                            fontSize = 12.sp,
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                            color = Color(0xFFF0D9B5)
+                        )
+                    )
+                }
+            }
+            Box(modifier = Modifier.size(20.dp)) // Coin vide
         }
     }
 }

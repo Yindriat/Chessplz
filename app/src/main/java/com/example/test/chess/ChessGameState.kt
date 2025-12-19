@@ -20,6 +20,8 @@ class ChessGameState {
         private set
     var capturedPieces by mutableStateOf<List<ChessPiece>>(emptyList())
         private set
+    var isInCheck by mutableStateOf(false)
+        private set
     
     // Compteur de version pour forcer la recomposition du plateau
     var boardVersion by mutableStateOf(0)
@@ -76,6 +78,8 @@ class ChessGameState {
             selectedPosition = null
             validMoves = emptyList()
             whiteToMove = !whiteToMove
+            // Vérifier si le nouveau joueur est en échec
+            isInCheck = isKingInCheck(if (whiteToMove) ChessColor.WHITE else ChessColor.BLACK)
         } else if (piece != null && piece.color.toBoolean() == whiteToMove) {
             selectedPosition = pos
             validMoves = calculateValidMoves(pos)
@@ -277,7 +281,125 @@ class ChessGameState {
             }
         }
 
-        return moves
+        // Filtrer les mouvements qui laisseraient le roi en échec
+        return moves.filter { move ->
+            !wouldLeaveKingInCheck(pos, move, piece.color)
+        }
+    }
+
+    // Trouver la position du roi d'une couleur donnée
+    private fun findKingPosition(color: ChessColor): Position? {
+        for (row in 0..7) {
+            for (col in 0..7) {
+                val piece = board[row][col]
+                if (piece?.type == PieceType.KING && piece.color == color) {
+                    return Position(row, col)
+                }
+            }
+        }
+        return null
+    }
+
+    // Vérifier si le roi d'une couleur donnée est en échec
+    private fun isKingInCheck(color: ChessColor): Boolean {
+        val kingPos = findKingPosition(color) ?: return false
+        return isSquareAttacked(kingPos, if (color == ChessColor.WHITE) ChessColor.BLACK else ChessColor.WHITE)
+    }
+
+    // Vérifier si une case est attaquée par une couleur donnée
+    private fun isSquareAttacked(pos: Position, byColor: ChessColor): Boolean {
+        for (row in 0..7) {
+            for (col in 0..7) {
+                val piece = board[row][col]
+                if (piece != null && piece.color == byColor) {
+                    if (canPieceAttack(Position(row, col), pos, piece)) {
+                        return true
+                    }
+                }
+            }
+        }
+        return false
+    }
+
+    // Vérifier si une pièce peut attaquer une position (sans vérifier l'échec)
+    private fun canPieceAttack(from: Position, to: Position, piece: ChessPiece): Boolean {
+        val dr = to.row - from.row
+        val dc = to.col - from.col
+
+        when (piece.type) {
+            PieceType.PAWN -> {
+                val direction = if (piece.color == ChessColor.WHITE) -1 else 1
+                // Le pion attaque en diagonale
+                return dr == direction && (dc == 1 || dc == -1)
+            }
+
+            PieceType.KNIGHT -> {
+                return (kotlin.math.abs(dr) == 2 && kotlin.math.abs(dc) == 1) ||
+                       (kotlin.math.abs(dr) == 1 && kotlin.math.abs(dc) == 2)
+            }
+
+            PieceType.BISHOP -> {
+                if (kotlin.math.abs(dr) != kotlin.math.abs(dc) || dr == 0) return false
+                return isPathClear(from, to)
+            }
+
+            PieceType.ROOK -> {
+                if (dr != 0 && dc != 0) return false
+                return isPathClear(from, to)
+            }
+
+            PieceType.QUEEN -> {
+                if (dr != 0 && dc != 0 && kotlin.math.abs(dr) != kotlin.math.abs(dc)) return false
+                return isPathClear(from, to)
+            }
+
+            PieceType.KING -> {
+                return kotlin.math.abs(dr) <= 1 && kotlin.math.abs(dc) <= 1 && (dr != 0 || dc != 0)
+            }
+        }
+    }
+
+    // Vérifier si le chemin entre deux positions est libre
+    private fun isPathClear(from: Position, to: Position): Boolean {
+        val dr = when {
+            to.row > from.row -> 1
+            to.row < from.row -> -1
+            else -> 0
+        }
+        val dc = when {
+            to.col > from.col -> 1
+            to.col < from.col -> -1
+            else -> 0
+        }
+
+        var r = from.row + dr
+        var c = from.col + dc
+        while (r != to.row || c != to.col) {
+            if (board[r][c] != null) return false
+            r += dr
+            c += dc
+        }
+        return true
+    }
+
+    // Vérifier si un mouvement laisserait le roi en échec
+    private fun wouldLeaveKingInCheck(from: Position, to: Position, color: ChessColor): Boolean {
+        // Sauvegarder l'état actuel
+        val movingPiece = board[from.row][from.col]
+        val capturedPiece = board[to.row][to.col]
+
+        // Effectuer le mouvement temporairement
+        board[to.row][to.col] = movingPiece
+        board[from.row][from.col] = null
+
+        // Vérifier si le roi est en échec
+        val inCheck = isKingInCheck(color)
+
+        // Restaurer l'état
+        board[from.row][from.col] = movingPiece
+        board[to.row][to.col] = capturedPiece
+
+        return inCheck
     }
 
     fun resetGame() {
@@ -289,6 +411,7 @@ class ChessGameState {
         gameOver = false
         winner = null
         capturedPieces = emptyList()
+        isInCheck = false
         boardVersion++
     }
 }

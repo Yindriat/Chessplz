@@ -1,5 +1,7 @@
 package com.example.test.chess
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -18,6 +20,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -28,6 +31,7 @@ import androidx.compose.ui.unit.sp
 fun ChessGameScreen(modifier: Modifier = Modifier) {
     val gameState = remember { ChessGameState() }
     var gameStarted by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
     Column(
         modifier = modifier
@@ -54,6 +58,17 @@ fun ChessGameScreen(modifier: Modifier = Modifier) {
                 "Joueur actuel: ${if (gameState.whiteToMove) "Blanc" else "Noir"}",
                 style = TextStyle(fontSize = 14.sp)
             )
+            
+            if (gameState.isInCheck) {
+                Text(
+                    "⚠️ ÉCHEC ! ⚠️",
+                    style = TextStyle(
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Red
+                    )
+                )
+            }
             
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -113,7 +128,16 @@ fun ChessGameScreen(modifier: Modifier = Modifier) {
             gameStarted = true
             gameState.resetGame()
         }) {
-            Text("Nouvelle Partie")
+            Text("Nouvelle partie")
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Button(onClick = {
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://lichess.org/fr/learn"))
+            context.startActivity(intent)
+        }) {
+            Text("Apprendre les règles")
         }
     }
 }
